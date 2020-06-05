@@ -1,3 +1,5 @@
+
+
 package net.abarbaro.xml;
 
 import java.io.BufferedOutputStream;
@@ -19,10 +21,19 @@ import org.xml.sax.helpers.DefaultHandler;
  * source XML file.  The splitting of the source XML into multiple ZipEntry's
  * is based on an element name to split on. All front matter leading to that
  * element name is repeated within ZipEntry.
- * <ol><u>Limitations</u>:
- * <li>Only one complexType allowed per root element
- * <li>The splitOnElementName can only appear once in a hierarchy
+ * <ol><u>Schema Limitations</u>:
+ * <li>The children of the root element must be of a common complexType
+ * <li>The splitOnElementName may only occur once within that complexType and its descendants
  * </ol>
+ * Usage:<br><pre>
+ * 	SAXParserFactory saxpf = SAXParserFactory.newInstance();
+ *		<tab>saxpf.setNamespaceAware(true);
+ *		<tab>saxpf.setValidating(true);
+ *
+ *		<tab>SAXParser saxp = saxpf.newSAXParser();
+ *
+ *		<tab>saxp.parse(XML_FILE_IN, new XmlToZipFileHandler("record", 1000, ZIP_FILE_OUT, "ZipEntry"));
+ *</pre>
  */
 public class XmlToZipFileHandler extends DefaultHandler {
 
@@ -87,12 +98,10 @@ public class XmlToZipFileHandler extends DefaultHandler {
 
 	/**
 	 * Constructor
-	 * Creates a zip of XML files, each including up to batch size of 
-	 * <code>splitOnElementName</code> elements.
 	 * @param splitOnElementName The element name to split on.
 	 * @param batchSize The number of elements of that name to be streamed to an XML file.
 	 * @param zipFile A reference to the zip file that will receive the split XML files.
-	 * @param ZIP_ENTRY_NAME_PRE The leading part of the name to assign to a <ZipEntry>
+	 * @param ZIP_ENTRY_NAME_PRE The leading part of the name to assign to a <code>ZipEntry</code>
 	 */
 	public XmlToZipFileHandler(String splitOnElementName, int batchSize, File zipFile, String zipEntryStem) {
 		this.zipFile = zipFile;
