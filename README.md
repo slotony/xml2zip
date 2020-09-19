@@ -1,5 +1,5 @@
 # xml2zip
-Java application to split  XML into multiple ZipEntry
+Java application to split XML into multiple ZipEntry
 
  A SAX handler that populates a given zip file from an XML stream.  Each entry
   within the zip will contain a certain maximum number of elements from the
