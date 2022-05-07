@@ -1,5 +1,3 @@
-
-
 package net.abarbaro.xml;
 
 import java.io.BufferedOutputStream;
@@ -10,7 +8,8 @@ import java.util.Stack;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -38,16 +37,15 @@ import org.xml.sax.helpers.DefaultHandler;
 public class XmlToZipFileHandler extends DefaultHandler {
 
 	
-	private static Logger LOG = Logger.getLogger(XmlToZipFileHandler.class);
-
+	private static Logger LOG = LogManager.getLogger(XmlToZipFileHandler.class);
 	
 	/*
 	 * The output zip file to be populated by split XML files
 	 */
 	private final File zipFile;
-	FileOutputStream fos = null;
-	BufferedOutputStream bos = null;
-	ZipOutputStream out = null;
+	private FileOutputStream fos = null;
+	private BufferedOutputStream bos = null;
+	private ZipOutputStream out = null;
 	
 	
 	/*
@@ -64,15 +62,11 @@ public class XmlToZipFileHandler extends DefaultHandler {
 	 * Capture the XML content to be repeated in zipEntry
 	 */
 	private final StringBuilder rootElementOpen = new StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-	boolean isFirstElement = true;
+	private boolean isFirstElement = true;
 	
 	
-	/*
-	 * Cache common content which must be emitted in zipEntry created by this
-	 */
-	boolean isFirstSplitElement;  // Marks the end of front matter
-	boolean inFrontMatter;
-	final StringBuilder frontMatter;
+	private boolean inFrontMatter;
+	private final StringBuilder frontMatter;
 	
 	/*
 	 * The maximum number of elements that can be copied into zipEntry
@@ -93,7 +87,7 @@ public class XmlToZipFileHandler extends DefaultHandler {
 	/*
 	 * The count of zipEntry created so far
 	 */
-	int zipEntryCount;
+	private int zipEntryCount;
 	
 
 	/**
@@ -104,13 +98,20 @@ public class XmlToZipFileHandler extends DefaultHandler {
 	 * @param ZIP_ENTRY_NAME_PRE The leading part of the name to assign to a <code>ZipEntry</code>
 	 */
 	public XmlToZipFileHandler(String splitOnElementName, int batchSize, File zipFile, String zipEntryStem) {
+		if(LOG.isTraceEnabled()) {
+			LOG.trace("Entering");
+		}
+		
 		this.zipFile = zipFile;
 		this.batchSize = batchSize;
 		this.splitOnElementName =  splitOnElementName;
 		this.zipEntryStem = zipEntryStem;
 		this.stack = new Stack<>();
 		this.frontMatter = new StringBuilder();
-
+		
+		if(LOG.isTraceEnabled()) {
+			LOG.trace("Exiting");
+		}
 	}
 
 	/**
@@ -120,6 +121,10 @@ public class XmlToZipFileHandler extends DefaultHandler {
 	@Override
 	public void startDocument() throws SAXException {
 
+		if(LOG.isTraceEnabled()) {
+			LOG.trace("Entering");
+		}
+		
 		try {
 			fos = new FileOutputStream(zipFile);
 			bos = new BufferedOutputStream(fos);
@@ -129,7 +134,11 @@ public class XmlToZipFileHandler extends DefaultHandler {
 		} catch (IOException e) {
 			LOG.error("Error creating the zip file!", e);
 			throw new SAXException("Error creating the zip file!");
-		} 
+		} finally {
+			if(LOG.isTraceEnabled()) {
+				LOG.trace("Exiting");
+			}
+		}
 	}
 
 	/**
@@ -139,6 +148,9 @@ public class XmlToZipFileHandler extends DefaultHandler {
 	@Override
 	public void endDocument() throws SAXException {
 		
+		if(LOG.isTraceEnabled()) {
+			LOG.trace("Entering");
+		}
 		
 		if(!stack.isEmpty())
 			stack.stream().forEach(s -> System.out.println(s));
@@ -150,6 +162,10 @@ public class XmlToZipFileHandler extends DefaultHandler {
 		} catch (IOException e) {
 			LOG.error("Error closing zip file!", e);
 			throw new SAXException("Error closing the zip file!");
+		} finally {
+			if(LOG.isTraceEnabled()) {
+				LOG.trace("Exiting");
+			}
 		}
 	}
 
@@ -163,6 +179,10 @@ public class XmlToZipFileHandler extends DefaultHandler {
 	@Override
 	public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
 
+//		if(LOG.isTraceEnabled()) {
+//			LOG.trace("Entering");
+//		}
+		
 		if(isFirstElement) {
 			
 			isFirstElement = false;
@@ -174,8 +194,12 @@ public class XmlToZipFileHandler extends DefaultHandler {
 			
 			try {
 				zipEntryCount++;
-				out.putNextEntry(new ZipEntry(String.format("%s-%04d.xml", zipEntryStem, zipEntryCount)));
+				ZipEntry nextEntry = createZipEntry();
+				out.putNextEntry(nextEntry);
 				out.write(rootElementOpen.toString().getBytes());
+				if(LOG.isDebugEnabled()) {
+					LOG.debug("Put " + nextEntry.getName());
+				}
 			} catch (IOException e) {
 				LOG.error("Error writing to the zip file!", e);
 				throw new SAXException("Error writing to the zip file!");
@@ -225,7 +249,11 @@ public class XmlToZipFileHandler extends DefaultHandler {
 
 				try {
 					zipEntryCount++;
-					out.putNextEntry(new ZipEntry(String.format("%s-%04d.xml", zipEntryStem, zipEntryCount)));
+					ZipEntry nextEntry = createZipEntry();
+					out.putNextEntry(nextEntry);
+					if(LOG.isDebugEnabled()) {
+						LOG.debug("Put " + nextEntry.getName());
+					}
 				} catch (IOException e) {
 					LOG.error("Error opening a new zipEntry!", e);
 					throw new SAXException("Error opening a new ZipEntry!");
@@ -235,7 +263,7 @@ public class XmlToZipFileHandler extends DefaultHandler {
 					out.write(rootElementOpen.toString().getBytes());
 					out.write(frontMatter.toString().getBytes());
 				} catch (IOException e) {
-					LOG.error("Error writing to new zipEntry!", e);
+					LOG.error("Error writing to the new zipEntry!", e);
 					throw new SAXException("Error writing to the new ZipEntry");
 				}
 
@@ -271,6 +299,10 @@ public class XmlToZipFileHandler extends DefaultHandler {
 		}
 		
 		stack.push(localName);
+		
+//		if(LOG.isTraceEnabled()) {
+//			LOG.trace("Exiting");
+//		}
 	}
 	/**
 	 * Writes the end element to the current <code>ZipEntry</code>.
@@ -279,6 +311,10 @@ public class XmlToZipFileHandler extends DefaultHandler {
 	@Override
 	public void endElement(String uri, String localName, String qName) throws SAXException {
 
+//		if(LOG.isTraceEnabled()) {
+//			LOG.trace("Entering");
+//		}
+		
 		if(!stack.isEmpty() && stack.peek().equals(localName)) {
 			
 			stack.pop();
@@ -297,6 +333,10 @@ public class XmlToZipFileHandler extends DefaultHandler {
 		} catch (IOException e) {
 			LOG.error("Error ending element!", e);
 			throw new SAXException("Error ending element!");
+		} finally {
+//			if(LOG.isTraceEnabled()) {
+//				LOG.trace("Exiting");
+//			}
 		}
 
 	}
@@ -308,6 +348,10 @@ public class XmlToZipFileHandler extends DefaultHandler {
 	@Override
 	public void characters(char[] ch, int start, int length) throws SAXException {
 
+//		if(LOG.isTraceEnabled()) {
+//			LOG.trace("Entering");
+//		}
+		
 		if (inFrontMatter) {
 			frontMatter.append(new String(ch, start, length));
 		}
@@ -316,7 +360,14 @@ public class XmlToZipFileHandler extends DefaultHandler {
 		} catch (IOException e) {
 			LOG.error("Error writing characters!", e);
 			throw new SAXException("Error writing characters!");
+		} finally {
+//			if(LOG.isTraceEnabled()) {
+//				LOG.trace("Exiting");
+//			}
 		}
 	}
 
+	private ZipEntry createZipEntry() {		
+		return new ZipEntry(String.format("%s-%04d.xml", zipEntryStem, zipEntryCount));
+	}
 }

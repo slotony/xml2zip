@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+	<Loggers>
+		<Root level="TRACE" additivity="false">
+			<AppenderRef level="ALL" ref="CONSOLE" />
+		</Root>
+	</Loggers>
+
+	<Appenders>
+
+		<Console name="CONSOLE" target="SYSTEM_OUT">
+			<PatternLayout pattern="%d %-5p [Thread: %t] %method  - %m%n"/>
+		</Console>
+
+	</Appenders>
+</Configuration>

@@ -15,35 +15,38 @@ import javax.xml.parsers.SAXParserFactory;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
+/**
+ * Run with -Dlog4j2.configurationFile=src/test/resources/log4j2.xml
 
+ */
 public class XmlToZipFileHandlerTest {
 	
+	private static Logger LOG = LogManager.getLogger(XmlToZipFileHandlerTest.class);
+	
 	// Where input and output goes
-	static final File RESOURCE_PATH = new File("./src/test/resources");
+	private static final File RESOURCE_PATH = new File("./src/test/resources");
 	
 	// The XML source file to split.  It has 100 <record> elements
-	static final File XML_FILE_IN = new File(RESOURCE_PATH, "Records.xml");
+	private static final File XML_FILE_IN = new File(RESOURCE_PATH, "Records.xml");
 
 	// The zip file produced by this.
-	static final File ZIP_FILE_OUT = new File(RESOURCE_PATH, "Records.zip");
+	private static final File ZIP_FILE_OUT = new File(RESOURCE_PATH, "Records.zip");
 	
 	// The names of the XML files withing this zip file
-	static final String ZIP_ENTRY_NAME_PRE = "ZipEntry";
+	private static final String ZIP_ENTRY_NAME_PRE = "ZipEntry";
 	
 	// The element name in the source XML to track in terms of split
-	static final String ELEMENT_NAME_TO_SPLIT_ON = "record";
+	private static final String ELEMENT_NAME_TO_SPLIT_ON = "record";
 	
 	// The max number of <record> elements in a ZipEntry
-	static final int BATCH_SIZE = 10;
-	
-	// The SAX handler class under test
-	XmlToZipFileHandler classUnderTest;
-	
-	
+	private static final int BATCH_SIZE = 10;
+
 	/**
 	 * Use this classUnderTest to parse the source XML file and produce a zip.
 	 * The zip file will be analyzed in subsequent tests.
@@ -51,6 +54,8 @@ public class XmlToZipFileHandlerTest {
 	 */
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
+		
+		LOG.trace("Entering");
 		
 		assertTrue("Resource path " + RESOURCE_PATH.getAbsolutePath() + " exists?", RESOURCE_PATH.exists());
 		assertTrue("Resource  path \" + RESOURCE_PATH.getAbsolutePath()" + " can be written to?", RESOURCE_PATH.canWrite());
@@ -73,6 +78,8 @@ public class XmlToZipFileHandlerTest {
 		
 		assertTrue("Zip file exists?", ZIP_FILE_OUT.exists());
 		assertTrue("Can read zip file?", ZIP_FILE_OUT.canRead());
+		
+		LOG.trace("Exiting");
 	}
 
 	
@@ -88,6 +95,7 @@ public class XmlToZipFileHandlerTest {
 	@Test 
 	public void testZipFile() throws Exception {
 	
+		LOG.trace("Entering");
 		
 		final DocumentBuilder parser = DocumentBuilderFactory.newInstance().newDocumentBuilder();
 		final XPathFactory xpFact = XPathFactory.newInstance();
@@ -98,23 +106,23 @@ public class XmlToZipFileHandlerTest {
 			
 		}
 		
-		final Counter zeCounter = new Counter();
+		final Counter zipEntryCounter = new Counter();
 		
 		try (ZipFile zipFile = new ZipFile(ZIP_FILE_OUT)) {
 			
-			zipFile.stream().forEach(ze -> {
+			zipFile.stream().forEach(zipEntry -> {
 
-				zeCounter.increment();
+				zipEntryCounter.increment();
 				
-				assertEquals(String.format("%s-%04d.xml", ZIP_ENTRY_NAME_PRE, zeCounter.count), ze.getName());
+				assertEquals(String.format("%s-%04d.xml", ZIP_ENTRY_NAME_PRE, zipEntryCounter.count), zipEntry.getName());
 	
-				assertTrue(ze.getSize() > 0);
+				assertTrue(zipEntry.getSize() > 0);
 				
 				
 				String recordCount = null;
 				String frontMatterCount = null;
 				
-				try (InputStream is = zipFile.getInputStream(ze)) {
+				try (InputStream is = zipFile.getInputStream(zipEntry)) {
 					
 					Document doc = parser.parse(is);
 					
@@ -124,24 +132,23 @@ public class XmlToZipFileHandlerTest {
 					
 					recordCount = xpFact.newXPath().compile("count(/records/nested/record)").evaluate(doc);
 					
-					assertEquals(10, Integer.parseInt(recordCount));
+					assertEquals(BATCH_SIZE, Integer.parseInt(recordCount));
 					
 				} catch (XPathExpressionException | IOException | SAXException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					LOG.error(e);
 				}
-
 				
 			});
 			
-			assertEquals(10, zeCounter.count);
+			assertEquals(BATCH_SIZE, zipEntryCounter.count);
 			
 		} catch (IOException e ) { 
-			e.printStackTrace();
+			LOG.error(e);
 		} finally {
 			
 		}
 		
+		LOG.trace("Exiting");
 	}
 
 }
