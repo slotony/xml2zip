@@ -1,12 +1,11 @@
 package net.abarbaro.xml;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.zip.ZipFile;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -14,20 +13,19 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.zip.ZipFile;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.w3c.dom.Document;
-import org.xml.sax.SAXException;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 /**
  * Run with -Dlog4j2.configurationFile=src/test/resources/log4j2.xml
-
  */
 public class XmlToZipFileHandlerTest {
 	
-	private static Logger LOG = LogManager.getLogger(XmlToZipFileHandlerTest.class);
+	private static final Logger logger = LoggerFactory.getLogger(XmlToZipFileHandlerTest.class);
 	
 	// Where input and output goes
 	private static final File RESOURCE_PATH = new File("./src/test/resources");
@@ -55,7 +53,7 @@ public class XmlToZipFileHandlerTest {
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
 		
-		LOG.trace("Entering");
+		logger.trace("Entering");
 		
 		assertTrue("Resource path " + RESOURCE_PATH.getAbsolutePath() + " exists?", RESOURCE_PATH.exists());
 		assertTrue("Resource  path \" + RESOURCE_PATH.getAbsolutePath()" + " can be written to?", RESOURCE_PATH.canWrite());
@@ -79,7 +77,7 @@ public class XmlToZipFileHandlerTest {
 		assertTrue("Zip file exists?", ZIP_FILE_OUT.exists());
 		assertTrue("Can read zip file?", ZIP_FILE_OUT.canRead());
 		
-		LOG.trace("Exiting");
+		logger.trace("Exiting");
 	}
 
 	
@@ -95,7 +93,7 @@ public class XmlToZipFileHandlerTest {
 	@Test 
 	public void testZipFile() throws Exception {
 	
-		LOG.trace("Entering");
+		logger.trace("Entering");
 		
 		final DocumentBuilder parser = DocumentBuilderFactory.newInstance().newDocumentBuilder();
 		final XPathFactory xpFact = XPathFactory.newInstance();
@@ -135,7 +133,7 @@ public class XmlToZipFileHandlerTest {
 					assertEquals(BATCH_SIZE, Integer.parseInt(recordCount));
 					
 				} catch (XPathExpressionException | IOException | SAXException e) {
-					LOG.error(e);
+					logger.error(e.getMessage());
 				}
 				
 			});
@@ -143,12 +141,12 @@ public class XmlToZipFileHandlerTest {
 			assertEquals(BATCH_SIZE, zipEntryCounter.count);
 			
 		} catch (IOException e ) { 
-			LOG.error(e);
+			logger.error(e.getMessage());
 		} finally {
 			
 		}
 		
-		LOG.trace("Exiting");
+		logger.trace("Exiting");
 	}
 
 }
